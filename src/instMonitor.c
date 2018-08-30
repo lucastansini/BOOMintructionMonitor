@@ -28,16 +28,19 @@
 
 //Change the lenght of the array when you add more masks.
 //TODO maybe making this modular
-#define MASK_ARRAY_LENGTH 4
+#define MASK_ARRAY_LENGTH 1
 #define MATCH_SB 0x23 	 //Store byte
-#define MASK_SB  0x707f
 #define MATCH_SH 0x1023  //Store half word
-#define MASK_SH  0x707f
 #define MATCH_SW 0x2023  //Store word
-#define MASK_SW  0x707f
 #define MATCH_SD 0x3023  //Store double
-#define MASK_SD  0x707f
-
+#define MATCH_LB 0x3
+#define MATCH_LH 0x1003
+#define MATCH_LW 0x2003
+#define MATCH_LD 0x3003
+#define MATCH_LBU 0x4003
+#define MATCH_LHU 0x5003
+#define MATCH_LWU 0x6003
+#define MASK_STORE_LOAD 0x707f  //Store and load have the same mask
 
 
 
@@ -63,7 +66,7 @@ int main(int argc, char const *argv[]) {
   unsigned int instruction;
 
   /*Array of instruction masks*/
-  unsigned int maskArray[MASK_ARRAY_LENGTH] = {MASK_SB,MASK_SD,MASK_SH,MASK_SW};
+  unsigned int maskArray[MASK_ARRAY_LENGTH] = {MASK_STORE_LOAD};
   //Variable that stores the result of the AND operation between instruction and mask.
   unsigned int match;
 
@@ -120,32 +123,52 @@ int main(int argc, char const *argv[]) {
         */
         //Convert the string to integer
         unsigned int mainPCnumber = (int)strtol(mainPC,NULL,16);
+        long int counterline = 0;
 
         while(!feof(commitFile)){
           fscanf(commitFile,"%d %x (%x)",&first,&programCounter,&instruction);
-
           //Read untill the end of the line
           fgets(commitBuffer,BUFFER_SIZE,commitFile);
 
           //Read untill we find the main piece executed.
+
           if(programCounter == mainPCnumber){
             //Begin processing the file
             beginCount = 1;
           }
 
           if(beginCount){
-
+            counterline++;
             int i;
+
+            //printf("\nInstruction hex:%x\n",instruction);
 
             for(i = 0; i < MASK_ARRAY_LENGTH ; i++){
               //Perfoming an AND operation to match the instruction.
               match = instruction & maskArray[i];
               //See what instruction match we got.
+
               switch (match) {
+                case MATCH_SB:
+                case MATCH_SD:
+                case MATCH_SH:
                 case MATCH_SW:{
+                  // printf("\nInstruction hex:%x\n",instruction);
+                  // printf("\nMask analized:%x\n",maskArray[i]);
+                  // printf("\nMatch result%x\n",match);
+                  // getchar();
                   counter[STORE_COUNTER]++;
                 }
                 break;
+                case MATCH_LB:
+                case MATCH_LD:
+                case MATCH_LH:
+                case MATCH_LW:
+                case MATCH_LBU:
+                case MATCH_LHU:
+                case MATCH_LWU:{
+                  counter[LOAD_COUNTER]++;
+                }
               }
             }
           }
@@ -158,7 +181,9 @@ int main(int argc, char const *argv[]) {
         //Show the results
         printf("\\--------------------------------------\\\n");
         printf("\tSTORE: %d\n",counter[STORE_COUNTER]);
+        printf("\tLOAD: %d\n",counter[LOAD_COUNTER]);
         printf("\\--------------------------------------\\\n");
+        printf("lines from main:%ld\n",counterline);
       }
     }
   }
